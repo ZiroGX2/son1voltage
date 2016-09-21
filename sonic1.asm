@@ -12408,9 +12408,9 @@ Obj4B_Main:				; XREF: Obj4B_Index
 		move.b	#$40,$19(a0)
 		tst.b	1(a0)
 		bpl.s	Obj4B_Animate
-		cmpi.b	#6,($FFFFFE57).w ; do you have 6 emeralds?
+		cmpi.b	#10,($FFFFFE57).w ; do you have 10 emeralds?
 		beq.w	Obj4B_Delete	; if yes, branch
-		cmpi.w	#50,($FFFFFE20).w ; do you have	at least 50 rings?
+		cmpi.w	#0,($FFFFFE20).w ; do you have	at least 50 rings?
 		bcc.s	Obj4B_Okay	; if yes, branch
 		rts	
 ; ===========================================================================
@@ -12496,32 +12496,33 @@ Obj7C_ChkDel:				; XREF: Obj7C_Index
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
-Obj7C_Collect:				; XREF: Obj7C_ChkDel
-		subq.b	#1,$1E(a0)
-		bpl.s	locret_9F76
-		move.b	#1,$1E(a0)
-		addq.b	#1,$1A(a0)
-		cmpi.b	#8,$1A(a0)	; has animation	finished?
-		bcc.s	Obj7C_End	; if yes, branch
-		cmpi.b	#3,$1A(a0)	; is 3rd frame displayed?
-		bne.s	locret_9F76	; if not, branch
-		movea.l	$3C(a0),a1
-		move.b	#6,$24(a1)	; delete giant ring object (Obj4B)
-		move.b	#$1C,($FFFFD01C).w ; make Sonic	invisible
-		move.b	#1,($FFFFF7CD).w ; stop	Sonic getting bonuses
-		clr.b	($FFFFFE2D).w	; remove invincibility
-		clr.b	($FFFFFE2C).w	; remove shield
+Obj7C_Collect:                ; XREF: Obj7C_ChkDel
+        subq.b    #1,$1E(a0)
+        bpl.s    locret_9F76
+        move.b    #1,$1E(a0)
+        addq.b    #1,$1A(a0)
+        cmpi.b    #8,$1A(a0)    ; has animation    finished?
+        bcc.s    Obj7C_End    ; if yes, branch
+        cmpi.b    #3,$1A(a0)    ; is 3rd frame displayed?
+        bne.s    locret_9F76    ; if not, branch
+        movea.l    $3C(a0),a1
+        move.b    #6,$24(a1)    ; delete giant ring object (Obj4B)
+        move.b    #1,($FFFFF7CD).w ; stop    Sonic getting bonuses
+        clr.b    ($FFFFFE2D).w    ; remove invincibility
 
 locret_9F76:
-		rts	
+        rts
 ; ===========================================================================
 
-Obj7C_End:				; XREF: Obj7C_Collect
-		addq.b	#2,$24(a0)
-		move.w	#0,($FFFFD000).w ; remove Sonic	object
-		addq.l	#4,sp
-		rts	
-; End of function Obj7C_Collect
+Obj7C_End:                ; XREF: Obj7C_Collect
+        addq.b    #2,$24(a0)
+        addq.l    #4,sp
+        move.b    #1,($FFFFF7CC).w ; lock    controls
+        move.w    #$800,($FFFFF602).w ; make Sonic run to    the right
+        clr.b    ($FFFFFE1E).w    ; stop time counter
+        move.w    ($FFFFF72A).w,($FFFFF728).w ; lock screen position
+
+        jmp        GotThroughAct
 
 ; ===========================================================================
 
@@ -25219,7 +25220,7 @@ Sonic_RevertToNormal:
 
 		tst.b	($FFFFFF89).w		; "Play with Super" is turned?
 		bne.s	Sonic_RevertMusic	; if yes, branch
-		move.b	#2,($FFFFFFD8).w	; Remove rotating palette
+		move.b #2,($FFFFF65F).w; Remove rotating palette
 		move.w	#$28,($FFFFFFDA).w	; set palette cycle to the 5th frame
 		clr.b	($FFFFFE19).w		; sonic to normal
 		move.l	a0,-(sp)

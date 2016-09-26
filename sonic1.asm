@@ -3385,21 +3385,21 @@ Title_ClrPallet:
 
 Title_LoadText:
 		move.w	(a5)+,(a6)
-		dbf	d1,Title_LoadText ; load uncompressed text patterns
+		dbf	d1,Title_LoadText; load uncompressed text patterns
 
-		move.b	#0,($FFFFFE30).w ; clear lamppost counter
-		move.w	#0,($FFFFFE08).w ; disable debug item placement	mode
-		move.w	#0,($FFFFFFF0).w ; disable debug mode
+		move.b	#0,($FFFFFE30).w; clear lamppost counter
+		move.w	#0,($FFFFFE08).w; disable debug item placement	mode
+		move.w	#0,($FFFFFFF0).w; disable debug mode
 		move.w	#0,($FFFFFFEA).w
-		move.w	#0,($FFFFFE10).w ; set level to	GHZ (00)
-		move.w	#0,($FFFFF634).w ; disable pallet cycling
+		move.w	#0,($FFFFFE10).w; set level to	GHZ (00)
+		move.w	#0,($FFFFF634).w; disable palette cycling
 		bsr.w	LevelSizeLoad
 		bsr.w	DeformBgLayer
 		lea	($FFFFB000).w,a1
-		lea	(Blk16_GHZ).l,a0 ; load	GHZ 16x16 mappings
+		lea	(Blk16_TS).l,a0; load	GHZ 16x16 mappings
 		move.w	#0,d0
 		bsr.w	EniDec
-		lea	(Blk256_GHZ).l,a0 ; load GHZ 256x256 mappings
+		lea	(Blk256_TS).l,a0; load GHZ 256x256 mappings
 		lea	($FF0000).l,a1
 		bsr.w	KosDec
 		bsr.w	LevelLayoutLoad
@@ -3413,7 +3413,7 @@ Title_LoadText:
 		move.w	#$6000,d2
 		bsr.w	LoadTilesFromStart2
 		lea	($FF0000).l,a1
-		lea	(Eni_Title).l,a0 ; load	title screen mappings
+		lea	(Eni_Title).l,a0; load	title screen mappings
 		move.w	#0,d0
 		bsr.w	EniDec
 		lea	($FF0000).l,a1
@@ -3422,17 +3422,18 @@ Title_LoadText:
 		moveq	#$15,d2
 		bsr.w	ShowVDPGraphics
 		move.l	#$40000000,($C00004).l
-		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
+		lea	(Nem_TS_1st).l,a0; load GHZ patterns
 		bsr.w	NemDec
-		moveq	#1,d0		; load title screen pallet
+		moveq	#1,d0; load title screen palette
 		bsr.w	PalLoad1
-		move.b	#$8b,d0		; play title screen music
+		move.b	#$8A,d0; play title screen music
 		bsr.w	PlaySound_Special
-		move.b	#0,($FFFFFFFA).w ; disable debug mode
-		move.w	#$5000,($FFFFF614).w ; run title	screen for $178	frames
+		move.b	#0,($FFFFFFFA).w; disable debug mode
+		move.w	#$178,($FFFFF614).w; run title	screen for $178	frames
 		lea	($FFFFD080).w,a1
 		moveq	#0,d0
 		move.w	#7,d1
+
 
 Title_ClrObjRam2:
 		move.l	d0,(a1)+
@@ -17254,6 +17255,22 @@ locret_DABC:
 ; End of function SingleObjLoad2
 
 ; ===========================================================================
+ObjectCounter:
+		lea	($FFFFD800).w,a5	; start address for object RAM
+		move.w	#$5F,d0
+		moveq	#0,d1			; clear object counter
+
+OC_Loop:
+		tst.b	(a5)			; is object RAM	slot empty?
+		beq.s	OC_NextObj		; if yes, branch
+		addq.w	#1,d1			; if is occupied, add 1 to counter
+
+OC_NextObj:
+		lea	$40(a5),a5		; goto next object RAM slot
+		dbf	d0,OC_Loop		; repeat $5F times
+		rts
+
+; End of function ObjectCounter
 ; ---------------------------------------------------------------------------
 ; Object 41 - springs
 ; ---------------------------------------------------------------------------
@@ -24112,14 +24129,31 @@ MusicList2:	incbin	misc\muslist2.bin
 ; ===========================================================================
 
 Sonic_Display:				; XREF: loc_12C7E
-		move.w	$30(a0),d0
-		beq.s	Obj01_Display
-		subq.w	#1,$30(a0)
-		lsr.w	#3,d0
-		bcc.s	Obj01_ChkInvin
+		move.w   $30(a0),d0
+		beq.s   Obj01_Display_AfterImage
+		subq.w   #1,$30(a0)
+		lsr.w   #3,d0
+		bcc.s   Obj01_ChkInvin
+
+Obj01_Display_AfterImage:
+		move.w   $14(a0),d0		   ; get inertia
+		tst.w   d0				   ; is inertia greater than 0?
+		bge.s   Obj01_AfterImage_Start   ; if yes, don't negate it
+		neg		d0				   ; if not, negate it
+
+Obj01_AfterImage_Start:
+		cmpi.w   #$600,d0		; is the sonic inertia greater than 600?
+		blt.s   Obj01_Display   ; if not, don't show the After Image
+
+		bsr.w   SingleObjLoad   ; search a free space in object RAM
+		bne.s   Obj01_Display   ; if not have, don't load the After Image
+		move.b  #$8D,0(a1)		; load after-image object
+		move.l   4(a0),4(a1)		; copy Sonic mappings to after-image mappings
+		move.w   8(a0),8(a1)		; copy Sonic x-pos to after-image x-pos
+		move.w   $C(a0),$C(a1)   ; copy Sonic y-pos to after-image y-pos
 
 Obj01_Display:
-		jsr	DisplaySprite
+		jsr   DisplaySprite
 
 Obj01_ChkInvin:
 		tst.b	($FFFFFE2D).w	; does Sonic have invincibility?
@@ -24245,6 +24279,7 @@ Obj01_MdNormal:				; XREF: Obj01_Modes
 		bsr.w	Sonic_SpinDash
 		bsr.w	Sonic_Jump
 		bsr.w	Sonic_SlopeResist
+		bsr.w	Sonic_fire
 		bsr.w	Sonic_Move
 		bsr.w	Sonic_Roll
 		bsr.w	Sonic_LevelBound
@@ -24257,6 +24292,7 @@ Obj01_MdNormal:				; XREF: Obj01_Modes
 Obj01_MdJump:				; XREF: Obj01_Modes
 		clr.b	$39(a0)		; clear Spin Dash flag
 		bsr.w	Sonic_AirRoll
+		bsr.w	Sonic_fire
 		bsr.w	Sonic_JumpHeight
 		bsr.w	Sonic_ChgJumpDir
 		bsr.w	Sonic_LevelBound
@@ -25565,6 +25601,29 @@ JD_End:
 ; ---------------------------------------------------------------------------
 ; Subroutine to perform Spin Dash
 ; ---------------------------------------------------------------------------
+Sonic_fire:
+		cmpi.w   #$600,d0		; is the sonic inertia greater than 600?
+		bne.s	Sonic_fire_rts	; if not, branch
+		bsr.w   SingleObjLoad   ; search a free space in object RAM
+		move.b	#$91,0(a1)	; load explosion object
+		move.b	#1,($FFFFD21C).w
+		bsr.w   SingleObjLoad   ; search a free space in object RAM
+		move.b	#$91,0(a1)	; load explosion object
+		move.b	#2,($FFFFD25C).w
+		bsr.w   SingleObjLoad   ; search a free space in object RAM
+		move.b	#$91,0(a1)	; load explosion object
+		move.b	#3,($FFFFD29C).w
+		bsr.w   SingleObjLoad   ; search a free space in object RAM
+		move.b	#$91,0(a1)	; load explosion object
+		bsr.w   SingleObjLoad   ; search a free space in object RAM
+		bne.s   Sonic_fire  ; if not have, don't load the Fire
+		move.b	#$91,0(a1)	; load explosion object
+		move.l   4(a0),0(a1)		; copy Sonic mappings to after-image mappings
+		move.w   8(a0),0(a1)		; copy Sonic x-pos to after-image x-pos
+		move.w   $C(a0),$C(a1)   ; copy Sonic y-pos to after-image y-pos
+; ---------------------------------------------------------------------------
+Sonic_fire_rts:
+		rts
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -26506,6 +26565,57 @@ SPLC_ReadEntry:
 locret_13C96:
 		rts	
 ; End of function LoadSonicDynPLC
+
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Object 8D - After Image
+; ---------------------------------------------------------------------------
+
+Obj8D:				   ; XREF: Obj_Index
+		cmpi.b   #$18,($FFFFD01C).w   ; is "death" animation?
+		beq.w   Obj8D_Delete		; if yes, delete the After Image
+
+		moveq   #0,d0
+		move.b   $24(a0),d0
+		move.w   Obj8D_Index(pc,d0.w),d1
+		jmp   Obj8D_Index(pc,d1.w)
+
+; ===========================================================================
+Obj8D_Index:
+		dc.w Obj8D_NoShow-Obj8D_Index
+		dc.w Obj8D_NoShow-Obj8D_Index
+		dc.w Obj8D_Sprite_priority_start-Obj8D_Index
+		dc.w Obj8D_NoShow-Obj8D_Index
+		dc.w Obj8D_Sprite_priority_next-Obj8D_Index
+		dc.w Obj8D_Delete-Obj8D_Index
+; ===========================================================================
+Obj8D_NoShow:
+		addq.b   #2,$24(a0)		   ; go to next item of index, at the next frame
+		rts
+; ===========================================================================
+Obj8D_Sprite_priority_start:
+		move.b   #2,$18(a0)		   ; set sprite priority to 2
+		bra.s   Obj8D_Show
+; ===========================================================================
+Obj8D_Sprite_priority_next:
+		addq.b   #1,$18(a0)		   ; set a lower sprite priority
+; ===========================================================================
+Obj8D_Show:
+		addq.b	#2,$24(a0)				; go to next item of index
+		jsr	(RandomNumber).l	; get a random number
+		andi.b	#0,d3	; get a number equal or lower than 3 (0 until 3)
+
+Obj8D_Show_exception:
+		lsl.w	 	#8,d0	 		 		 		 	; multiply by 2000
+	 	lsl.w	 	#5,d0
+		move.w	 	($FFFFD002).w,2(a0)	 		 	; copy Sonic map to after-image map
+		lea	($FFFFFB22).w,a1 ; load	2nd pallet, 2nd	entry
+		move.b	 	($FFFFD001).w,1(a0)	 		 	; copy Sonic frame infos (horizontal/vertical mirror, coordinate system......)
+	 	move.l	 	($FFFFD01A).w,$1A(a0)	 	; copy the Sonic animation frame
+	 	jmp	 	DisplaySprite
+; ===========================================================================
+Obj8D_Delete:
+		jmp   DeleteObject
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -39188,6 +39298,14 @@ Nem_Squirrel:	incbin	artnem\squirrel.bin	; squirrel
 ; ---------------------------------------------------------------------------
 ; Compressed graphics - primary patterns and block mappings
 ; ---------------------------------------------------------------------------
+Blk16_TS:	incbin	map16\ts.bin
+		even
+Nem_TS_1st:	incbin	artnem\8x8ts1.bin; GHZ primary patterns
+		even
+Blk256_TS:	incbin	map256\ts.bin
+		even
+Blk16_LZ:	incbin	map16\lz.bin
+		even
 Blk16_GHZ:	incbin	map16\ghz.bin
 		even
 Nem_GHZ:	incbin	artnem\8x8ghz.bin
@@ -39197,8 +39315,6 @@ Nem_GHZ_1st:	incbin	artnem\8x8ghz1.bin	; GHZ primary patterns
 Nem_GHZ_2nd:	incbin	artnem\8x8ghz2.bin	; GHZ secondary patterns
 		even
 Blk256_GHZ:	incbin	map256\ghz.bin
-		even
-Blk16_LZ:	incbin	map16\lz.bin
 		even
 Nem_LZ:		incbin	artnem\8x8lz.bin	; LZ primary patterns
 		even

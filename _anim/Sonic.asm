@@ -35,6 +35,7 @@
 		dc.w SonAni_Spindash-SonicAniData	;1F
 		dc.w SonAni_SuperPeelout-SonicAniData ;20
 		dc.w SonAni_SuperPeelout2-SonicAniData ;21
+		dc.w SonAni_Spinkick-SonicAniData ;22
 
 SonAni_Walk:	dc.b $FF, 8, 9,	$A, $B,	6, 7, $FF
 SonAni_Run:		dc.b $FF, $1E, $1F, $20, $21, $FF, $FF,	$FF
@@ -70,4 +71,5 @@ SonAni_Float4:	dc.b 3,	$3C, $FD, 0
 SonAni_Spindash:	dc.b 0, $58, $59, $58, $5A, $58, $5B, $58, $5C, $58, $5D, $FF
 SonAni_SuperPeelout:	dc.b 3, $61, $5E, $5F, $60, $FF
 SonAni_SuperPeelout2:	dc.b 0, 5, $8, $8, $8, $8, $8, $8, $8, $8, $9, $9, $9, $9, $9, $A, $A, $A, $21, $21, $1E, $1F, $20, $21, $1E, $1F, $20, $61, $5E, $5F, $60, $FE, 4, 0
+SonAni_Spinkick: dc.b 0, $6E, $6F, $70, $71, $72, $73, $74, $75, $FF
 		even

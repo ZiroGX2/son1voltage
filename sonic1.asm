@@ -24062,8 +24062,8 @@ Obj01_Main:				; XREF: Obj01_Index
 		move.b	#2,$18(a0)
 		move.b	#$18,$19(a0)
 		move.b	#4,1(a0)
-		move.w	#$600,($FFFFF760).w ; Sonic's top speed
-		move.w	#$C,($FFFFF762).w ; Sonic's acceleration
+		move.w	#$95F,($FFFFF760).w ; Sonic's top speed
+		move.w	#$1F,($FFFFF762).w ; Sonic's acceleration
 		move.w	#$80,($FFFFF764).w ; Sonic's deceleration
 		move.b	#5,$FFFFD1C0.w	; create Spin Dust object
 		move.b	#5,$FFFFD1C0.w
@@ -24766,6 +24766,7 @@ loc_13242:
 
 
 Sonic_ChgJumpDir:		; XREF: Obj01_MdJump; Obj01_MdJump2
+
 		move.w	($FFFFF760).w,d6
 		move.w	($FFFFF762).w,d5
 		asl.w	#1,d5
@@ -25370,233 +25371,90 @@ Sonic_AirRoll:
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
+; ---------------------------------------------------------------------------
+; Subroutine to perform a Jumpdash
+
+
+; ---------------------------------------------------------------------------
+
+
 Sonic_JumpDash:
-		move.b	($FFFFF603).w,d1	; read controller
-		andi.b	#$40,d1				; is A pressed?
-		beq.w	JD_End				; if not, branch
-		tst.b	($FFFFFFCB).w		; was jumpdash flag set?
-		bne.w	JD_End				; if yes, branch
-		move.b	#1,($FFFFFFCB).w	; if not, set jumpdash flag
-		move.w	#$BC,d0				; set jumpdash sound
-		jsr	(PlaySound).l			; play jumpdash sound
-		bclr	#4,$22(a0)			; clear double jump flag
 
-; ---------------------------------------------------------------------------
-; Homing attack command
-; ---------------------------------------------------------------------------
 
-JD_Homingattack:
-		clr.b	($FFFFFFD2).w		; clear homing attack "near object" flag
-		lea		($FFFFD000).w,a1	; start at the first object RAM
+		move.b	($FFFFF603).w,d0	; is ABC pressed? (part 1)
 
-; ---------------------------------------------------------------------------
 
-HA_enemylist:
-		tst.b	(a1)
-		beq.w	HA_Move
-		cmpi.b	#5,$20(a1)	; is Burrobot enemy (LZ)
-		bcs.w	HA_Move		; if yes, branch
-		; cmpi.b	#6,$20(a1)		; is Crabmeat enemy (GHZ, SYZ)
-		; beq.s	HA_calcdistance	; if yes, branch
-		; cmpi.b	#8,$20(a1)		; is Buzz Bomber enemy (GHZ, MZ, SYZ)
-		; beq.s	HA_calcdistance	; if yes, branch
-		; cmpi.b	#9,$20(a1)		; is Chopper enemy (GHZ)
-		; beq.s	HA_calcdistance	; if yes, branch
-		; cmpi.b	#$A,$20(a1)	; is Jaws enemy (LZ)
-		; beq.s	HA_calcdistance	; if yes, branch
-		; cmpi.b	#$B,$20(a1)	; is Caterkiller enemy (MZ, SBZ) / Orbinaut enemy (LZ, SLZ, SBZ) / Basaran enemy (MZ)
-		; beq.s	HA_calcdistance	; if yes, branch
-		; cmpi.b	#$C,$20(a1)	; is Roller enemy (SYZ) / Newtron enemy (GHZ)
-		; beq.s	HA_calcdistance	; if yes, branch	
-		; cmpi.b	#$D,$20(a1)	; is Newtron enemy (GHZ)
-		; beq.s	HA_calcdistance	; if yes, branch
-		; cmpi.b	#$E,$20(a1)	; is Roller enemy (SYZ)
-		; beq.s	HA_calcdistance	; if yes, branch
-		; cmpi.b	#$F,$20(a1)	; is Eggman
-		; beq.s	HA_calcdistance	; if yes, branch
-		cmpi.b	#$F,$20(a1)		; is some enemy of the list above, without be the Burrobot enemy?
-		bls.s	HA_calcdistance ; if yes, branch
-		cmpi.b	#$46,$20(a1)	; is the monitor?
-		beq.s	HA_calcdistance ; if yes, branch
-		; cmpi.b	#$47,$20(a1)		; is the ring?
-		; beq.s	HA_calcdistance 		; if yes, branch
-		cmpi.b	#$52,$20(a1)	; is giant ring for entry to special stage?
-		beq.s	HA_calcdistance ; if yes, branch
-		cmpi.b	#$CC,$20(a1)	; is Yadrin enemy (SYZ)
-		bne.s	HA_Move			; if not, branch
+		andi.b	#$70,d0	; is ABC pressed? (part 2)
 
-; ---------------------------------------------------------------------------
 
-HA_calcdistance:	; distance calculator
-		move.w  8(a1),d0	; move the objetc x-position to d0
-		move.w  $C(a1),d1	; move the objetc y-position to d1
-		sub.w   8(a0),d0	; sub sonic x-position of objetc x-position
-		sub.w   $C(a0),d1	; sub sonic y-position of objetc y-position
+		beq.w	JD_End	; if not, branch
 
-; ---------------------------------------------------------------------------
 
-; test if the Sonic is facing the objetc
-		btst    #0,$22(a0)	; is sonic facing left?
-		beq.w   HA_faceleft	; if yes, branch
-		cmpi.w  #8,d0		; is distance of Sonic, less than 8 pixels of the object?
-		blt.w   HA_calcdistance2	; if yes, branch
-		bra.w   HA_Move
+		tst.b	($FFFFFFEB).w	; was jumpdash flag set?
 
-HA_faceleft:
-		cmpi.w  #-8,d0		; is distance of Sonic, greater than -8 pixels of the object?
-		bgt.w   HA_calcdistance2	; if yes, branch
-		bra.w   HA_Move
-; end of test
 
-; ---------------------------------------------------------------------------
+		bne.w	JD_End	; if yes, branch
 
-HA_calcdistance2:		; continuation of distance calculator
-		muls.w  d0,d0	; horizontal distance squared
-		muls.w  d1,d1	; vertical distance squared
-		add.l   d1,d0	; add vertical distance to horizontal distance
-		cmp.l   #$4000,d0	; is distance of Sonic, greater than or equal 128 pixels of the object? (128^2=16384 // $80^2=$4000)
-		bge.w   HA_Move	; if yes, don't execute the homing attack
-; end of distance calculator
 
-; ---------------------------------------------------------------------------
+		move.b	#1,($FFFFFFEB).w	; if not, set jumpdash flag
 
-; saves the distance between the Sonic and the object (d3 = x distance saved / d4 = y distance saved)
-		move.w  8(a1),d3	; move the objetc x-position to d3
-		move.w  $C(a1),d4	; move the objetc y-position to d4
-		sub.w   8(a0),d3	; sub sonic x-position of objetc x-position
-		sub.w   $C(a0),d4	; sub sonic y-position of objetc y-position
-		move.b  #1,($FFFFFFD2).w	; set homing attack "near object" flag
 
-; ---------------------------------------------------------------------------
+		move.b	#$BC,d0	; set jumpdash sound
 
-HA_Move:
-		adda.w  #$40,a1		; jump to next object RAM entry
-		cmpa.w  #$F000,a1	; already tested all object RAM entry?
-		blt.w   HA_enemylist	; if not, return to enemy list
-		tst.b   ($FFFFFFD2).w	; Sonic is near of some object?
-		beq.w   JD_JD			; if not, go to Jump Dash
-		move.w  d3,d1			; set the x distance saved for d1
-		move.w  d4,d2			; set the y distance saved for d2
-		jsr		(CalcAngle).l	; calculates the angle
-		jsr		(CalcSine).l	; calculates the sine and the cosine
-		muls.w  #$C,d1			; multiply cosine by $C
-		move.w  d1,$10(a0)		; move d1 to X-velocity
-		muls.w  #$C,d0			; multiply sine by $C
-		move.w  d0,$12(a0)		; move d0 to Y-velocity
-		rts
-; Command of Homingattack end here
 
-; ---------------------------------------------------------------------------
-; Jump Dash normal command of speed
-; ---------------------------------------------------------------------------
+		jsr	(PlaySound_Special).l	; play jumpdash sound
 
-JD_JD:
-		move.w	#$A00,d0		; set normal jumpdash speed
+
+		bclr	#4,$22(a0)	; clear double jump flag
+
+
+		move.w	#$A00,d0	; set normal jumpdash speed
+
+
 		tst.b	($FFFFFE2E).w	; do you have speed shoes?
-		beq.s	JD_ChkSuper		; if not, branch
-		move.w	#$B00,d0		; set speed shoes jumpdash speed
 
-JD_ChkSuper:
-		tst.b	($FFFFFE19).w	; is Sonic super?
-		beq.s	JD_ChkUW		; if not, branch
-		move.w	#$B00,d0		; set Super Sonic jumpdash speed
+
+		beq.s	JD_ChkUW	; if not, branch
+
+
+		move.w	#$B00,d0	; set speed shoes jumpdash speed
+
 
 JD_ChkUW:
-		btst	#6,$22(a0)		; is Sonic underwater?
-		beq.s	JD_Move			; if not, branch
-		cmpi.b	#1,($FFFFFFCC).w; is Sonic cavitating?
-		beq.s	JD_Move			; if yes, branch
-		move.w	#$600,d0		; set underwater jumpdash speed
 
-; ---------------------------------------------------------------------------
-; Normal Jump Dash
-; ---------------------------------------------------------------------------
+
+		btst	#6,$22(a0)	; is Sonic underwater?
+
+
+		beq.s	JD_ChkDirection	; if not, branch
+
+
+		move.w	#$600,d0	; set underwater jumpdash speed
+
+
+		JD_ChkDirection:
+
+
+		btst	#0,$22(a0)	; is sonic facing left?
+
+
+		beq.s	JD_Move	; if yes, branch
+
+
+		neg.w	d0	; if not, negate d0 (for jumping to the right)
+
 
 JD_Move:
-		move.b	($FFFFF604).w,d2; read controller
-		cmpi.b	#$40,d2			; is A pressed? (Normal Jump Dash)
-		bne.s	JD_Angle		; if not, branch
 
-JD_Normal:
-		btst	#0,$22(a0)		; is sonic facing left?
-		beq.s	JD_Normalmove	; if yes, branch
-		neg.w	d0				; if not, negate d0 (for jumping to the right)
 
-JD_Normalmove:
-		move.w	d0,$10(a0)		; move d0 to X-velocity
-		clr.w	$12(a0)			; clear Y-velocity
-		rts						; return
+		move.w	d0,$10(a0)	; move Sonic forward with the selected speed ($10(a0) = Sonic's X-velocity)
+		
+        move.b    #$22,$1C(a0)    ; use "roll" animation
 
-; ---------------------------------------------------------------------------
-; Jump Dash in Angle
-; ---------------------------------------------------------------------------
+		JD_End:
 
-JD_Angle:
-		cmpi.b	#$41,d2			; is A+UP pressed?
-		beq.w	JD_UP			; if yes, branch
-		cmpi.b	#$42,d2			; is A+DOWN pressed?
-		beq.w	JD_DOWN			; if yes, branch
-		cmpi.b	#$44,d2			; is A+LEFT pressed?
-		beq.w	JD_LEFT			; if yes, branch
-		cmpi.b	#$45,d2			; is A+UP+LEFT pressed?
-		beq.w	JD_UPLEFT		; if yes, branch
-		cmpi.b	#$46,d2			; is A+DOWN+LEFT pressed?
-		beq.w	JD_DOWNLEFT		; if yes, branch
-		cmpi.b	#$48,d2			; is A+RIGHT pressed?
-		beq.w	JD_RIGHT		; if yes, branch
-		cmpi.b	#$49,d2			; is A+UP+RIGHT pressed?
-		beq.w	JD_UPRIGHT		; if yes, branch
-		cmpi.b	#$4A,d2			; is A+DOWN+RIGHT pressed?
-		beq.w	JD_DOWNRIGHT	; if yes, branch
-		bra.s	JD_Normal
-; ---------------------------------------------------------------------------
-JD_UP:
-		neg.w	d0				; negate d0 (for jumping to up)
-		clr.w	$10(a0)			; clear X-velocity to move sonic directly to up
-		move.w	d0,$12(a0)		; move d0 to Y-velocity
-		rts
-;--------------------------------------------------------------------------------
-JD_DOWN:
-		clr.w	$10(a0)			; clear X-velocity to move sonic directly to down
-		move.w	d0,$12(a0)		; move d0 to Y-velocity
-		rts
-;--------------------------------------------------------------------------------
-JD_LEFT:
-		neg.w	d0				; negate d0 (for jumping to the left)
-		move.w	d0,$10(a0)		; move d0 to X-velocity
-		clr.w	$12(a0)			; clear Y-velocity to move sonic directly to the left
-		rts
-;--------------------------------------------------------------------------------
-JD_UPLEFT:
-		neg.w	d0				; negate d0 (for jumping to up and to the left)
-		move.w	d0,$10(a0)		; move d0 to X-velocity
-		move.w	d0,$12(a0)		; move d0 to Y-velocity
-		rts
-;--------------------------------------------------------------------------------
-JD_DOWNLEFT:
-		move.w	d0,$12(a0)		; move d0 to Y-velocity
-		neg.w	d0				; negate d0 (for jumping to the left)
-		move.w	d0,$10(a0)		; move d0 to X-velocity
-		rts
-;--------------------------------------------------------------------------------
-JD_RIGHT:
-		move.w	d0,$10(a0)		; move d0 to X-velocity
-		clr.w	$12(a0)			; clear Y-velocity to move sonic directly to the right
-		rts
-;--------------------------------------------------------------------------------
-JD_UPRIGHT:
-		move.w	d0,$10(a0)		; move d0 to X-velocity
-		neg.w	d0				; negate d0 (for jumping to up)
-		move.w	d0,$12(a0)		; move d0 to Y-velocity
-		rts
-;--------------------------------------------------------------------------------
-JD_DOWNRIGHT:
-		move.w	d0,$10(a0)		; move d0 to X-velocity
-		move.w	d0,$12(a0)		; move d0 to Y-velocity
-		rts
-;--------------------------------------------------------------------------------
-JD_End:
-		rts						; return
+
+		rts	; return
 ; Subroutine Sonic_JumpDash end here
 ; ---------------------------------------------------------------------------
 ; Subroutine to perform Spin Dash
@@ -26436,10 +26294,24 @@ loc_13A78:
 		neg.w	d2
 
 loc_13A9C:
+		tst.b	($FFFFFE19).w		; is sonic super?
+		beq.s	loc_13A9Cnormal		; if not, branch
+		lea	(SupSonAni_Run).l,a1 ; use	running	animation
+		cmpi.w	#$600,d2	; is Sonic at running speed?
+		bcc.s	loc_13AB4	; if yes, branch
+		lea	(SupSonAni_Walk).l,a1 ; use walking animation
+		bra.s	loc_13A9CCont
+
+loc_13A9Cnormal:
+		lea	(SonAni_SuperPeelout).l,a1
+		cmpi.w	#$A00,d2	; is Sonic at running speed?
+		bcc.s	loc_13AB4	; if yes, branch
 		lea	(SonAni_Run).l,a1 ; use	running	animation
 		cmpi.w	#$600,d2	; is Sonic at running speed?
 		bcc.s	loc_13AB4	; if yes, branch
 		lea	(SonAni_Walk).l,a1 ; use walking animation
+
+loc_13A9CCont:
 		move.b	d0,d1
 		lsr.b	#1,d1
 		add.b	d1,d0
@@ -26583,7 +26455,9 @@ Obj8D:				   ; XREF: Obj_Index
 ; ===========================================================================
 Obj8D_Index:
 		dc.w Obj8D_NoShow-Obj8D_Index
+		dc.w Obj8D_Delete-Obj8D_Index
 		dc.w Obj8D_NoShow-Obj8D_Index
+		dc.w Obj8D_Delete-Obj8D_Index
 		dc.w Obj8D_Sprite_priority_start-Obj8D_Index
 		dc.w Obj8D_NoShow-Obj8D_Index
 		dc.w Obj8D_Sprite_priority_next-Obj8D_Index
@@ -35923,11 +35797,13 @@ locret_1AF2E:
 		rts	
 ; ===========================================================================
 
-Touch_Enemy:				; XREF: Touch_ChkValue
-		tst.b	($FFFFFE2D).w	; is Sonic invincible?
-		bne.s	loc_1AF40	; if yes, branch
-		cmpi.b	#2,$1C(a0)	; is Sonic rolling?
-		bne.w	Touch_ChkHurt	; if not, branch
+Touch_Enemy: ; XREF: Touch_ChkValue
+		tst.b ($FFFFFE2D).w ; is Sonic invincible?
+		bne.s loc_1AF40 ; if yes, branch
+		cmpi.b #$22,$1C(a0) ; is Sonic kick?
+		beq.s loc_1AF40 ; if yes, branch
+		cmpi.b #2,$1C(a0) ; is Sonic rolling??
+		bne.w Touch_ChkHurt ; if not, branch
 
 loc_1AF40:
 		tst.b	$21(a1)
@@ -35986,6 +35862,53 @@ loc_1AFCA:
 ; ===========================================================================
 Enemy_Points:	dc.w 10, 20, 50, 100
 ; ===========================================================================
+
+BounceJD:
+
+
+		tst.b	($FFFFFFEB).w	; was jumpdash flag set?
+
+
+		beq.s	BounceJD_End	; if not, branch
+
+
+		clr.b	($FFFFFFEB).w	; if yes, clear jumpdash flag (allow Sonic to jumpdash again)
+
+
+		clr.w	$10(a0)	; clear X-velocity (stop sonic)
+
+
+		move.w	#-$5F0,$12(a0)	; use -$5F0 for Y-velocity (move sonic upwards)
+
+
+		btst	#6,$22(a0)	; is sonic underwater?
+
+
+		beq.s	BounceJD_Shoes	; if not, branch
+
+
+		move.w	#-$320,$12(a0)	; use only -$320 for Y-velocity (move sonic upwards)
+
+
+BounceJD_Shoes:
+
+
+		tst.b	($FFFFFE2E).w	; does sonic has speed shoes?
+
+
+		beq.s	BounceJD_End	; if not, branch
+
+
+		move.w	#-$620,$12(a0)	; use -$620 for Y-velocity (move sonic upwards)
+
+
+BounceJD_End:
+
+
+		rts	; return
+
+
+; End of function BounceJD
 
 loc_1AFDA:				; XREF: Touch_CatKiller
 		bset	#7,$22(a1)

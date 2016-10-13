@@ -12,8 +12,8 @@
 
 ; ===========================================================================
 
-		include	"config.asm"	; S1HS hack configuration
-		include	"macro.asm"	; S1HS macros
+		include	"config.asm"	; 
+		include	"macro.asm"	; 
 
 align macro
 	cnop 0,\1
@@ -3615,7 +3615,7 @@ LevSel_Level_SS:			; XREF: LevelSelect
 		bne.s	LevSel_Level	; if not, branch
 		move.b	#$10,($FFFFF600).w ; set screen	mode to	$10 (Special Stage)
 		clr.w	($FFFFFE10).w	; clear	level
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#0,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,($FFFFFE20).w ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -3629,7 +3629,7 @@ LevSel_Level:				; XREF: LevSel_Level_SS
 
 PlayLevel:				; XREF: ROM:00003246j ...
 		move.b	#$C,($FFFFF600).w ; set	screen mode to $0C (level)
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#0,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,($FFFFFE20).w ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -5559,7 +5559,7 @@ loc_4DF2:
 
 Cont_GotoLevel:				; XREF: Cont_MainLoop
 		move.b	#$C,($FFFFF600).w ; set	screen mode to $0C (level)
-		move.b	#3,($FFFFFE12).w ; set lives to	3
+		move.b	#0,($FFFFFE12).w ; set lives to	3
 		moveq	#0,d0
 		move.w	d0,($FFFFFE20).w ; clear rings
 		move.l	d0,($FFFFFE22).w ; clear time
@@ -6209,9 +6209,9 @@ Obj89_Main:				; XREF: Obj89_Index
 
 Obj89_Move:				; XREF: Obj89_Index
 		cmpi.w	#$C0,8(a0)	; has object reached $C0?
-		beq.s	Obj89_Delay	; if yes, branch
+		beq.w	Obj89_Delay	; if yes, branch
 		addi.w	#$10,8(a0)	; move object to the right
-		bra.w	DisplaySprite
+		jsr	DisplaySprite
 ; ===========================================================================
 
 Obj89_Delay:				; XREF: Obj89_Move
@@ -8466,6 +8466,9 @@ Resize_SBZ3:
 		cmpi.w	#$18,($FFFFD00C).w ; has Sonic reached the top of the level?
 		bcc.s	locret_6F8C	; if not, branch
 		clr.b	($FFFFFE30).w
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	$FFFFFE5C ; clear emeralds
 		move.w	#1,($FFFFFE02).w ; restart level
 		move.w	#$502,($FFFFFE10).w ; set level	number to 0502 (FZ)
 		move.b	#1,($FFFFF7C8).w ; freeze Sonic
@@ -12436,6 +12439,7 @@ Obj4B_Animate:				; XREF: Obj4B_Index
 ; ===========================================================================
 
 Obj4B_Collect:				; XREF: Obj4B_Index
+		clr.w	($FFFFFE57).w; clear emeralds
 		subq.b	#2,$24(a0)
 		move.b	#0,$20(a0)
 		bsr.w	SingleObjLoad
@@ -12778,6 +12782,8 @@ Obj2E_ChkEggman:			; XREF: Obj2E_Move
 Obj2E_ChkSonic:
 		cmpi.b	#2,d0		; does monitor contain Sonic?
 		bne.s	Obj2E_ChkShoes
+		addi.b	#1,($FFFFFE57).w ; do you have all emeralds?
+		jmp	Obj09_Get1Up
 
 ExtraLife:
 		addq.b	#1,($FFFFFE12).w ; add 1 to the	number of lives	you have
@@ -12838,11 +12844,9 @@ Obj2E_ChkRings:
 		cmpi.w	#100,($FFFFFE20).w ; check if you have 100 rings
 		bcs.s	Obj2E_RingSound
 		bset	#1,($FFFFFE1B).w
-		beq.w	ExtraLife
 		cmpi.w	#200,($FFFFFE20).w ; check if you have 200 rings
 		bcs.s	Obj2E_RingSound
 		bset	#2,($FFFFFE1B).w
-		beq.w	ExtraLife
 
 Obj2E_RingSound:
 		move.w	#$B5,d0
@@ -12851,8 +12855,14 @@ Obj2E_RingSound:
 
 Obj2E_ChkS:
 		cmpi.b	#7,d0		; does monitor contain 'S'
-		bne.s	Obj2E_ChkEnd
-		nop	
+		bne	Obj2E_ChkGoggles		; if not, branch to Goggle code
+		nop
+
+Obj2E_ChkGoggles:	
+		cmpi.b	#8,d0		; does monitor contain Goggles?
+		bne	Obj2E_ChkEnd		; if not, branch to ChkEnd
+	
+		nop
 
 Obj2E_ChkEnd:
 		rts			; 'S' and goggles monitors do nothing
@@ -15325,7 +15335,11 @@ Obj39_ChgMode:				; XREF: Obj39_Wait
 ; ===========================================================================
 
 Obj39_ResetLvl:				; XREF: Obj39_ChgMode
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	$FFFFFE5C ; clear emeralds
 		move.w	#1,($FFFFFE02).w ; restart level
+
 
 Obj39_Display:				; XREF: Obj39_ChgMode
 		bra.w	DisplaySprite
@@ -15493,6 +15507,9 @@ Obj3A_ChkSS:				; XREF: Obj3A_NextLevel
 ; ===========================================================================
 
 loc_C6EA:				; XREF: Obj3A_ChkSS
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	$FFFFFE5C ; clear emeralds
 		move.w	#1,($FFFFFE02).w ; restart level
 
 Obj3A_Display2:				; XREF: Obj3A_NextLevel, Obj3A_ChkSS
@@ -15688,6 +15705,9 @@ locret_C8EA:
 ; ===========================================================================
 
 Obj7E_Exit:				; XREF: Obj7E_Index
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	$FFFFFE5C ; clear emeralds
 		move.w	#1,($FFFFFE02).w ; restart level
 		bra.w	DisplaySprite
 ; ===========================================================================
@@ -26065,7 +26085,6 @@ GameOver:				; XREF: Obj01_Death
 		addq.b	#2,$24(a0)
 		clr.b	($FFFFFE1E).w	; stop time counter
 		addq.b	#1,($FFFFFE1C).w ; update lives	counter
-		subq.b	#1,($FFFFFE12).w ; subtract 1 from number of lives
 		bne.s	loc_138D4
 		move.w	#0,$3A(a0)
 		move.b	#$39,($FFFFD080).w ; load GAME object
@@ -35998,7 +36017,7 @@ Hurt_NoRings:
 
 KillSonic:
 		tst.w	($FFFFFE08).w	; is debug mode	active?
-		bne.s	Kill_NoDeath	; if yes, branch
+		bne.w	Kill_NoDeath	; if yes, branch
 		move.b	#0,($FFFFFE2D).w ; remove invincibility
 		move.b	#6,$24(a0)
 		bsr.w	Sonic_ResetOnFloor
@@ -36009,20 +36028,153 @@ KillSonic:
 		move.w	$C(a0),$38(a0)
 		move.b	#$18,$1C(a0)
 		bset	#7,2(a0)
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		cmpi.b	#7,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald7death	; if yes, branch
+		cmpi.b	#6,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald6death	; if yes, branch
+		cmpi.b	#5,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald5death	; if yes, branch
+		cmpi.b	#4,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald4death	; if yes, branch
+		cmpi.b	#3,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald3death	; if yes, branch
+		cmpi.b	#2,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald2death	; if yes, branch
+		cmpi.b	#1,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald1death	; if yes, branch
+		clr.w	($FFFFFE57).w; clear emeralds
 		move.w	#$A3,d0		; play normal death sound
 		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
-		bne.s	Kill_Sound
+		bne.w	Kill_Sound
 		move.w	#$A6,d0		; play spikes death sound
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		jmp		Kill_Sound
+
 
 Kill_Sound:
 		jsr	(PlaySound_Special).l
+		
 
 Kill_NoDeath:
 		moveq	#-1,d0
 		rts	
+
+emerald7death:
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		clr.w	($FFFFFE57).w; clear emeralds
+		subq.b	#7,($FFFFFE12).w 
+		subq.b	#7,($FFFFFE1C).w 
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	($FFFFFE57).w; clear emeralds
+		bra.w	Kill_Sound
+		rts
+emerald6death:
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		clr.w	($FFFFFE57).w; clear emeralds
+		subq.b	#6,($FFFFFE12).w 
+		subq.b	#6,($FFFFFE1C).w
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	($FFFFFE57).w; clear emeralds
+		bra.w	Kill_Sound
+		rts
+emerald5death:
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		clr.w	($FFFFFE57).w; clear emeralds
+		subq.b	#5,($FFFFFE12).w 
+		subq.b	#5,($FFFFFE1C).w 
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	($FFFFFE57).w; clear emeralds
+		bra.w	Kill_Sound
+		rts
+emerald4death:
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		clr.w	($FFFFFE57).w; clear emeralds
+		subq.b	#4,($FFFFFE12).w 
+		subq.b	#4,($FFFFFE1C).w 
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	($FFFFFE57).w; clear emeralds
+		bra.w	Kill_Sound
+		rts
+emerald3death:
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		clr.w	($FFFFFE57).w; clear emeralds
+		subq.b	#3,($FFFFFE12).w 
+		subq.b	#3,($FFFFFE1C).w 
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	($FFFFFE57).w; clear emeralds
+		bra.w	Kill_Sound
+		rts
+emerald2death:
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branch
+		clr.w	($FFFFFE57).w; clear emeralds
+		subq.b	#2,($FFFFFE12).w 
+		subq.b	#2,($FFFFFE1C).w 
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	($FFFFFE57).w; clear emeralds
+		bra.w	Kill_Sound
+		rts
+emerald1death:
+		cmpi.b	#0,($FFFFFE57).w ; do you have all emeralds?
+		beq.w	emerald0death	; if yes, branc
+		clr.w	($FFFFFE57).w; clear emeralds
+		subq.b	#1,($FFFFFE12).w 
+		subq.b	#1,($FFFFFE1C).w 
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		clr.w	$FFFFFE57; clear emeralds
+		clr.w	$FFFFFE58; clear emeralds
+		clr.w	($FFFFFE57).w; clear emeralds
+		bra.w	Kill_Sound
+		rts
+emerald0death:
+		
 ; End of function KillSonic
-
-
+		move.w	#$A3,d0		; play normal death sound
+		cmpi.b	#$36,(a2)	; check	if you were killed by spikes
+		bne.w	Kill_Sound
+		move.w	#$A6,d0		; play spikes death sound
+		rts
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
@@ -37167,7 +37319,7 @@ Obj09_Chk1Up:
 Obj09_Get1Up:
 		addq.b	#1,($FFFFFE12).w ; add 1 to number of lives
 		addq.b	#1,($FFFFFE1C).w ; add 1 to lives counter
-		move.w	#$88,d0
+		move.w	#$C5,d0
 		jsr	(PlaySound).l	; play extra life music
 		moveq	#0,d4
 		rts	

@@ -25628,8 +25628,11 @@ loc2_1AD8C:
 		move.w	#$60,($FFFFF73E).w	; reset looking up/down
 		rts
 ; End of subroutine Sonic_Spin_Dash
-
-
+;hold c
+;is sonic in air
+;is sonic facing right
+;		dc.w  $880		; 1 
+;		move.w	#$BC,d0			; spin release sound
 ; ---------------------------------------------------------------------------
 ; Subroutine to	slow Sonic walking up a	slope
 ; ---------------------------------------------------------------------------
